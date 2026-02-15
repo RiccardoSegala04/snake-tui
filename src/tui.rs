@@ -4,9 +4,9 @@ use crossterm::{
     cursor,
     cursor::MoveTo,
     queue,
-    style::{Print, StyledContent, ContentStyle},
-    terminal::{self, size, disable_raw_mode, enable_raw_mode, Clear},
-    ExecutableCommand, 
+    style::{ContentStyle, Print, StyledContent},
+    terminal::{self, disable_raw_mode, enable_raw_mode, size, Clear},
+    ExecutableCommand,
 };
 use std::io::{self, Stdout, Write};
 
@@ -17,25 +17,27 @@ pub struct Window {
     pos: Vec2,
     size: Vec2,
     title: Option<String>,
-    renderer: Rc<RefCell<Renderer>>
+    renderer: Rc<RefCell<Renderer>>,
 }
 
 #[allow(dead_code)]
 impl Window {
-
     pub fn new(renderer: Rc<RefCell<Renderer>>, x: u16, y: u16, width: u16, height: u16) -> Self {
         Self {
-            pos: Vec2{x, y},
-            size: Vec2{x: width, y: height},
+            pos: Vec2 { x, y },
+            size: Vec2 {
+                x: width,
+                y: height,
+            },
             title: None,
-            renderer
+            renderer,
         }
     }
 
     pub fn centered(renderer: Rc<RefCell<Renderer>>, width: u16, height: u16) -> Self {
         let (x, y) = renderer.borrow().center_point();
 
-        Window::new(renderer, x - width/2, y - height/2, width, height)
+        Window::new(renderer, x - width / 2, y - height / 2, width, height)
     }
 
     pub fn set_title(&mut self, title: &str) {
@@ -44,56 +46,78 @@ impl Window {
 
     pub fn inner(&self) -> Self {
         Self {
-            pos: Vec2{x: self.pos.x+1, y: self.pos.y+1},
-            size: Vec2{x: self.size.x-2, y: self.size.y-2},
+            pos: Vec2 {
+                x: self.pos.x + 1,
+                y: self.pos.y + 1,
+            },
+            size: Vec2 {
+                x: self.size.x - 2,
+                y: self.size.y - 2,
+            },
             title: None,
-            renderer: self.renderer.clone()
+            renderer: self.renderer.clone(),
         }
     }
 
     pub fn outer(&self) -> Self {
         Self {
-            pos: Vec2{x: self.pos.x-1, y: self.pos.y-1},
-            size: Vec2{x: self.size.x+2, y: self.size.y+2},
+            pos: Vec2 {
+                x: self.pos.x - 1,
+                y: self.pos.y - 1,
+            },
+            size: Vec2 {
+                x: self.size.x + 2,
+                y: self.size.y + 2,
+            },
             title: None,
-            renderer: self.renderer.clone()
+            renderer: self.renderer.clone(),
         }
     }
 
     pub fn pixel(&self, x: u16, y: u16, c: char) -> Result<(), io::Error> {
-        self.renderer.borrow_mut().pixel(self.pos.x + x, self.pos.y + y, c)?;
+        self.renderer
+            .borrow_mut()
+            .pixel(self.pos.x + x, self.pos.y + y, c)?;
         Ok(())
     }
 
     pub fn pixel_styled(&self, x: u16, y: u16, c: StyledContent<char>) -> Result<(), io::Error> {
-        self.renderer.borrow_mut().pixel_styled(self.pos.x + x, self.pos.y + y, c)?;
+        self.renderer
+            .borrow_mut()
+            .pixel_styled(self.pos.x + x, self.pos.y + y, c)?;
         Ok(())
     }
 
     pub fn print_str(&self, x: u16, y: u16, s: &str) -> Result<(), io::Error> {
-        self.renderer.borrow_mut().print_str(x + self.pos.x, y + self.pos.y, s)?;
+        self.renderer
+            .borrow_mut()
+            .print_str(x + self.pos.x, y + self.pos.y, s)?;
         Ok(())
-    } 
+    }
 
     pub fn print_centered_str(&self, y: u16, s: &str) -> Result<(), io::Error> {
-        self.renderer.borrow_mut().print_str(self.size.x / 2 - (s.chars().count() / 2) as u16 + self.pos.x, y + self.pos.y, s)?;
+        self.renderer.borrow_mut().print_str(
+            self.size.x / 2 - (s.chars().count() / 2) as u16 + self.pos.x,
+            y + self.pos.y,
+            s,
+        )?;
         Ok(())
-    } 
+    }
 
     pub fn draw_borders(&self) -> Result<(), io::Error> {
         for y in 1..self.size.y {
-            self.pixel(0, y,'│')?;
-            self.pixel(self.size.x, y,'│')?;
+            self.pixel(0, y, '│')?;
+            self.pixel(self.size.x, y, '│')?;
         }
         for x in 1..self.size.x {
-            self.pixel(x, 0,'─')?;
-            self.pixel(x, self.size.y,'─')?;
+            self.pixel(x, 0, '─')?;
+            self.pixel(x, self.size.y, '─')?;
         }
 
-        self.pixel(0, 0,'┌')?;
-        self.pixel(self.size.x, 0,'┐')?;
-        self.pixel(0, self.size.y,'└')?;
-        self.pixel(self.size.x, self.size.y,'┘')?;
+        self.pixel(0, 0, '┌')?;
+        self.pixel(self.size.x, 0, '┐')?;
+        self.pixel(0, self.size.y, '└')?;
+        self.pixel(self.size.x, self.size.y, '┘')?;
 
         if let Some(name) = &self.title {
             let title = format!("[ {} ]", name);
@@ -117,7 +141,7 @@ impl Renderer {
 
     pub fn center_point(&self) -> (u16, u16) {
         let (x, y) = size().unwrap();
-        ((x/2) as u16, (y/2) as u16)
+        ((x / 2) as u16, (y / 2) as u16)
     }
 
     pub fn init(&mut self) -> Result<(), io::Error> {
@@ -151,7 +175,12 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn pixel_styled(&mut self, x: u16, y: u16, c: StyledContent<char>) -> Result<(), io::Error> {
+    pub fn pixel_styled(
+        &mut self,
+        x: u16,
+        y: u16,
+        c: StyledContent<char>,
+    ) -> Result<(), io::Error> {
         queue!(self.stdout, MoveTo(x, y), Print(&c))?;
         Ok(())
     }
@@ -159,5 +188,5 @@ impl Renderer {
     pub fn print_str(&mut self, x: u16, y: u16, s: &str) -> Result<(), io::Error> {
         queue!(self.stdout, MoveTo(x, y), Print(s))?;
         Ok(())
-    } 
+    }
 }

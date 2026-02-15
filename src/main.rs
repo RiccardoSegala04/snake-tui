@@ -1,27 +1,27 @@
 use crossterm::{
     event::{poll, read, Event, KeyCode},
-    style::{Stylize, Color},
+    style::{Color, Stylize},
 };
-use std::io::{self};
-use std::{time::Duration};
 use std::cell::RefCell;
+use std::io::{self};
 use std::rc::Rc;
+use std::time::Duration;
 
 mod game;
-mod util;
 mod tui;
+mod util;
 
-use crate::game::{Game, Direction, Tile, GameState, FIELD_LINES, FIELD_COLS};
-use crate::tui::{Window, Renderer};
+use crate::game::{Direction, Game, GameState, Tile, FIELD_COLS, FIELD_LINES};
+use crate::tui::{Renderer, Window};
 
 struct ColorStruct {
     r: u8,
     g: u8,
-    b: u8
+    b: u8,
 }
 
 fn interp_value(v1: u8, v2: u8, t: f32) -> u8 {
-    ((1.0-t) * v2 as f32 + t * v1 as f32) as u8
+    ((1.0 - t) * v2 as f32 + t * v1 as f32) as u8
 }
 
 impl ColorStruct {
@@ -41,15 +41,17 @@ impl ColorStruct {
         Color::Rgb {
             r: self.r,
             g: self.g,
-            b: self.b
+            b: self.b,
         }
     }
 }
 
 fn snake_color(v: u16) -> Color {
-    let t: f32 = 1.0 - (v as f32 / (FIELD_LINES*FIELD_COLS / 4) as f32); 
+    let t: f32 = 1.0 - (v as f32 / (FIELD_LINES * FIELD_COLS / 4) as f32);
 
-    ColorStruct::new(66,168,50).interpolate(ColorStruct::new(242,230,61), t).to_crossterm()
+    ColorStruct::new(66, 168, 50)
+        .interpolate(ColorStruct::new(242, 230, 61), t)
+        .to_crossterm()
 }
 
 fn draw_tile(window: &Window, x: u16, y: u16, t: &Tile) -> Result<(), io::Error> {
@@ -59,14 +61,13 @@ fn draw_tile(window: &Window, x: u16, y: u16, t: &Tile) -> Result<(), io::Error>
         _ => ' '.blue(),
     };
 
-    window.inner().pixel_styled(x*2, y, tile_ch)?;
-    window.inner().pixel_styled(x*2+1, y, tile_ch)?;
+    window.inner().pixel_styled(x * 2, y, tile_ch)?;
+    window.inner().pixel_styled(x * 2 + 1, y, tile_ch)?;
 
     Ok(())
 }
 
 fn draw_game(window: &mut Window, game: &Game) -> Result<(), io::Error> {
-
     let title = format!("Apples: {}", game.points());
     window.set_title(&title);
     window.draw_borders()?;
@@ -86,7 +87,7 @@ fn draw_main_menu(window: &mut Window) -> Result<(), io::Error> {
 
     window.print_centered_str(2, "Snake game in the terminal")?;
     window.print_centered_str(3, "written in Rust")?;
-    window.print_centered_str(5, "Use arrow keys ← → ↑ ↓ to move")?;
+    window.print_centered_str(5, "Use arrow keys ← → ↑ ↓, WASD or HJKL to move")?;
     window.print_centered_str(7, "Press ESC to exit")?;
     Ok(())
 }
@@ -95,10 +96,9 @@ fn draw_end_menu(window: &mut Window, points: u16) -> Result<(), io::Error> {
     window.set_title("Game Over");
     window.draw_borders()?;
 
-
     let p = format!("You ate {} apples", points);
     window.print_centered_str(2, &p)?;
-    window.print_centered_str(4, "Use arrow keys ← → ↑ ↓ to restart")?;
+    window.print_centered_str(4, "Use arrow keys ← → ↑ ↓, WASD or HJKL to restart")?;
 
     Ok(())
 }
@@ -111,19 +111,30 @@ fn main() -> io::Result<()> {
     let renderer = Rc::new(RefCell::new(renderer));
 
     let mut game = Game::new();
-    let mut win = Window::centered(renderer.clone(), (FIELD_COLS * 2 + 2) as u16, (FIELD_LINES + 1) as u16);
+    let mut win = Window::centered(
+        renderer.clone(),
+        (FIELD_COLS * 2 + 2) as u16,
+        (FIELD_LINES + 1) as u16,
+    );
 
     loop {
-
         if poll(Duration::from_millis(100)).unwrap() {
             if let Ok(event) = read() {
                 if let Event::Key(key) = event {
                     match key.code {
                         KeyCode::Esc => break,
-                        KeyCode::Up => game.move_to(Direction::Up),
-                        KeyCode::Down => game.move_to(Direction::Down),
-                        KeyCode::Left => game.move_to(Direction::Left),
-                        KeyCode::Right => game.move_to(Direction::Right),
+                        KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('w') => {
+                            game.move_to(Direction::Up);
+                        }
+                        KeyCode::Down | KeyCode::Char('j') | KeyCode::Char('s') => {
+                            game.move_to(Direction::Down);
+                        }
+                        KeyCode::Left | KeyCode::Char('h') | KeyCode::Char('a') => {
+                            game.move_to(Direction::Left);
+                        }
+                        KeyCode::Right | KeyCode::Char('l') | KeyCode::Char('d') => {
+                            game.move_to(Direction::Right);
+                        }
                         _ => {}
                     }
                 }

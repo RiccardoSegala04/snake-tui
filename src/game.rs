@@ -50,7 +50,6 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Self {
-
         Self {
             head: Vec2::new(0, 0),
             length: 1,
@@ -58,7 +57,6 @@ impl Game {
             field: [[Tile::Free; FIELD_COLS]; FIELD_LINES],
             state: GameState::Starting,
         }
-
     }
 
     pub fn points(&self) -> u16 {
@@ -70,7 +68,6 @@ impl Game {
     }
 
     pub fn move_to(&mut self, d: Direction) {
-
         if self.state != GameState::Started {
             self.length = 1;
             self.create_apple();
@@ -83,7 +80,6 @@ impl Game {
     }
 
     pub fn step(&mut self) {
-
         for row in self.field.iter_mut() {
             for elem in row.iter_mut() {
                 *elem = update_element(*elem);
@@ -114,16 +110,15 @@ impl Game {
     }
 
     fn handle_collisions(&mut self) -> bool {
-
         match self.head() {
             Tile::Snake(_) => {
                 self.clear();
                 self.state = GameState::Ended;
-            },
+            }
             Tile::Apple => {
                 self.length += 1;
                 self.create_apple();
-            },
+            }
             _ => {}
         };
 
@@ -131,18 +126,21 @@ impl Game {
     }
 
     fn move_head(&mut self) {
+        self.head.x = (self.head.x as i32
+            + match self.direction {
+                Direction::Left => -1i32,
+                Direction::Right => 1i32,
+                _ => 0,
+            })
+        .rem_euclid(self.field[0].len() as i32) as u16;
 
-        self.head.x = (self.head.x as i32 + match self.direction {
-            Direction::Left => -1i32,
-            Direction::Right => 1i32,
-            _ => 0,
-        }).rem_euclid(self.field[0].len() as i32) as u16;
-
-        self.head.y = (self.head.y as i32 + match self.direction {
-            Direction::Up => -1i32,
-            Direction::Down => 1i32,
-            _ => 0,
-        }).rem_euclid(self.field.len() as i32) as u16;
+        self.head.y = (self.head.y as i32
+            + match self.direction {
+                Direction::Up => -1i32,
+                Direction::Down => 1i32,
+                _ => 0,
+            })
+        .rem_euclid(self.field.len() as i32) as u16;
     }
 
     fn generate_position(&self) -> (usize, usize) {
